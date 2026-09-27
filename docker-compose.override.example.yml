@@ -1,0 +1,38 @@
+# This file can be renamed to docker-compose.override.yml for local development customization
+# Docker Compose will automatically use this file along with docker-compose.yml
+
+# Example: Override app service for development with different settings
+version: '3.8'
+
+services:
+  app:
+    # Use source code directly (already defined in docker-compose.yml)
+    # This is just an example of how to override settings
+    environment:
+      NODE_ENV: development
+      LOG_LEVEL: debug
+    # Uncomment to expose debugger port
+    ports:
+      - "9229:9229"  # Node.js debugger port
+
+  # Example: Add Adminer for database management
+  adminer:
+    image: adminer:latest
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    networks:
+      - expodia-network
+
+  # Example: Add Redis Commander for Redis management
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+    networks:
+      - expodia-network
