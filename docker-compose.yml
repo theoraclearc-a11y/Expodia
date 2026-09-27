@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: expodia-app
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      APP_PORT: 3000
+      APP_HOST: 0.0.0.0
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-expodia_dev}
+      DB_USER: ${DB_USER:-expodia}
+      DB_PASSWORD: ${DB_PASSWORD:-expodia_password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - expodia-network
+    restart: unless-stopped
+    env_file:
+      - .env.local
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: expodia-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-expodia}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-expodia_password}
+      POSTGRES_DB: ${DB_NAME:-expodia_dev}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - expodia-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-expodia}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: expodia-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - expodia-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  expodia-network:
+    driver: bridge
